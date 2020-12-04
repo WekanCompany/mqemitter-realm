@@ -22,14 +22,14 @@ const aedes = require('aedes')({
     compactionThreshold: 20,
     topics: [
       {
-        name: 'temp/sensor-1',
+        name: 'temp/sensor',
         transformer: utils.transformers.temperature,
         partitionValue: 'temperature-1',
       },
       {
         name: 'humid/sensor-1',
         transformer: utils.transformers.humidity,
-        partitionValue: 'humidity-1',
+        partitionValue: 'humidity',
       },
     ],
   }),
