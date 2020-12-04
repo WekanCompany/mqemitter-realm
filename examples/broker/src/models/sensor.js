@@ -5,7 +5,7 @@ module.exports = {
     sensorId: 'string',
     sensorType: 'string?',
     timestamp: 'int',
-    value: 'double',
+    value: 'double'
   },
-  primaryKey: '_id',
-};
+  primaryKey: '_id'
+}
