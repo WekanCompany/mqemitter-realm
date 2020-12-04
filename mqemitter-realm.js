@@ -52,7 +52,7 @@ function RealmEmitter (opts) {
   if (opts && opts.appId && opts.email && opts.password) {
     this._app = new Realm.App(opts.appId)
 
-    realmUtils.loginEmailPassword (this._app, opts.email, opts.password)
+    realmUtils.loginEmailPassword(this._app, opts.email, opts.password)
       .then((user) => {
         if (opts.schema && opts.topics) {
           const config = {
@@ -70,27 +70,26 @@ function RealmEmitter (opts) {
             (item) => item.partitionValue
           )
           this._transformers = opts.topics.map((item) => item.transformer)
-    
+
           config.shouldCompactOnLaunch = (totalSize, usedSize) => {
             console.log(
               `[${LOG_PREFIX}] Compact on launch - Realm used size: ${usedSize / 1e6} mb, ` +
               `Compaction threshold: ${this._compactionThreshold} mb`, this._messages)
             return usedSize > this._compactionThreshold
           }
-    
+
           for (let i = 0; i < this._partitionValues.length; i += 1) {
             const partitionValue = String(this._partitionValues[i])
             config.sync.partitionValue = partitionValue
             this._realms[partitionValue] = new Realm(config)
           }
-    
+
           this.startCompaction()
           this.startCleanup()
         }
-
       })
       .catch(error => console.log(`[${LOG_PREFIX}] Failed to initialize`, error))
-    }
+  }
 
   MQEmitter.call(this, opts)
 }
@@ -140,8 +139,8 @@ RealmEmitter.prototype.close = function close (cb) {
     this._realms[this._partitionValues[i]].close()
   }
 
-  if (realmUtils.app.currentUser) {
-    realmUtils.app.currentUser.logOut()
+  if (this._app) {
+    this._app.logOut()
   }
 
   this.closed = true
