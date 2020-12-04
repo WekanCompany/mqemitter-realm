@@ -9,6 +9,7 @@ const fs = require('fs')
 
 const eventEmitter = new events.EventEmitter()
 const SYNC_MESSAGES = 'sync_message'
+const LOG_PREFIX = 'MQEmitter-Realm'
 
 eventEmitter.on(SYNC_MESSAGES, syncMessages)
 
@@ -48,78 +49,48 @@ function RealmEmitter (opts) {
   this._compactionInterval = 60 * 60
   this._isCompacting = false
 
-  try {
-    if (opts && opts.schema && opts.topics) {
-      const config = {
-        schema: [opts.schema]
-      }
+  if (opts && opts.appId && opts.email && opts.password) {
+    this._app = new Realm.App(opts.appId)
 
-      this.schemaName = opts.schema.name
-
-      if (opts.realmUser) {
-        this._realmUser = opts.realmUser
-        config.sync = { user: opts.realmUser }
-      }
-
-      // Size in MB
-      this._compactionThreshold = opts.compactionThreshold || 100
-
-      this._topics = opts.topics.map((item) => item.name)
-      this._partitionValues = opts.topics.map(
-        (item) => item.partitionValue
-      )
-      this._transformers = opts.topics.map((item) => item.transformer)
-
-      config.shouldCompactOnLaunch = (totalSize, usedSize) => {
-        console.log(
-          `[MQEmitter-Realm] Compact on launch - Realm used size: ${usedSize / 1e6} mb, ` +
-          `Compaction threshold: ${this._compactionThreshold} mb`)
-        return usedSize > this._compactionThreshold
-      }
-
-      for (let i = 0; i < this._partitionValues.length; i += 1) {
-        const partitionValue = String(this._partitionValues[i])
-        config.sync.partitionValue = partitionValue
-        this._realms[partitionValue] = new Realm(config)
-      }
-
-      setInterval(() => {
-        for (let i = 0; i < this._partitionValues.length; i += 1) {
-          const partitionValue = String(this._partitionValues[i])
-
-          const stats = fs.statSync(this._realms[partitionValue].path)
-          const currentSize = stats.size
-          const thresholdInBytes = this._compactionThreshold * 1e6
-
-          console.log(
-            '[MQEmitter-Realm] ' +
-            `Current Realm Size in Bytes: ${currentSize}, ` +
-            `Configured Threshold in Bytes: ${thresholdInBytes}`)
-
-          if (currentSize >= thresholdInBytes) {
-            console.log('[MQEmitter-Realm] Compacting realm ...')
-
-            try {
-              this._isCompacting = true
-              clearInterval(this._cleanupIntervalInstance)
-
-              this._realms[partitionValue].compact()
-              console.log('[MQEmitter-Realm] Compaction completed')
-
-              this._isCompacting = false
-              this.startCleanup()
-            } catch (error) {
-              console.log('[MQEmitter-Realm] Failed compaction', error)
-            }
+    realmUtils.loginEmailPassword (this._app, opts.email, opts.password)
+      .then((user) => {
+        if (opts.schema && opts.topics) {
+          const config = {
+            schema: [opts.schema]
           }
-        }
-      }, this._compactionInterval * 1000)
 
-      this.startCleanup()
+          this.schemaName = opts.schema.name
+          if (user) {
+            this._realmUser = user
+            config.sync = { user }
+          }
+          this._compactionThreshold = opts.compactionThreshold || 100
+          this._topics = opts.topics.map((item) => item.name)
+          this._partitionValues = opts.topics.map(
+            (item) => item.partitionValue
+          )
+          this._transformers = opts.topics.map((item) => item.transformer)
+    
+          config.shouldCompactOnLaunch = (totalSize, usedSize) => {
+            console.log(
+              `[${LOG_PREFIX}] Compact on launch - Realm used size: ${usedSize / 1e6} mb, ` +
+              `Compaction threshold: ${this._compactionThreshold} mb`, this._messages)
+            return usedSize > this._compactionThreshold
+          }
+    
+          for (let i = 0; i < this._partitionValues.length; i += 1) {
+            const partitionValue = String(this._partitionValues[i])
+            config.sync.partitionValue = partitionValue
+            this._realms[partitionValue] = new Realm(config)
+          }
+    
+          this.startCompaction()
+          this.startCleanup()
+        }
+
+      })
+      .catch(error => console.log(`[${LOG_PREFIX}] Failed to initialize`, error))
     }
-  } catch (error) {
-    console.log('[MQEmitter-Realm] Failed to ', error)
-  }
 
   MQEmitter.call(this, opts)
 }
@@ -128,7 +99,7 @@ RealmEmitter.prototype.emit = function emit (message, cb) {
   cb = cb || noop
 
   if (this.closed) {
-    return cb(new Error('mqemitter is closed'))
+    return cb(new Error(`[${LOG_PREFIX}] mqemitter is closed`))
   }
 
   try {
@@ -154,7 +125,7 @@ RealmEmitter.prototype.emit = function emit (message, cb) {
       }
     }
   } catch (error) {
-    console.log('[MQEmitter-Realm] Emit messages failed', error)
+    console.log(`[${LOG_PREFIX}] Emit messages failed`, error)
   }
 
   // The above was just a hook to capture the message, now we pass it on to
@@ -197,6 +168,40 @@ RealmEmitter.prototype.startCleanup = function startCleanup () {
   )
 }
 
+RealmEmitter.prototype.startCompaction = function startCompaction () {
+  this._compactionpIntervalInstance = setInterval(() => {
+    for (let i = 0; i < this._partitionValues.length; i += 1) {
+      const partitionValue = String(this._partitionValues[i])
+
+      const stats = fs.statSync(this._realms[partitionValue].path)
+      const currentSize = stats.size
+      const thresholdInBytes = this._compactionThreshold * 1e6
+
+      console.log(
+        `[${LOG_PREFIX}] ` +
+        `Current Realm Size in Bytes: ${currentSize}, ` +
+        `Configured Threshold in Bytes: ${thresholdInBytes}`)
+
+      if (currentSize >= thresholdInBytes) {
+        console.log(`[${LOG_PREFIX}] Compacting realm ...`)
+
+        try {
+          this._isCompacting = true
+          clearInterval(this._cleanupIntervalInstance)
+
+          this._realms[partitionValue].compact()
+          console.log(`[${LOG_PREFIX}] Compaction completed`)
+
+          this._isCompacting = false
+          this.startCleanup()
+        } catch (error) {
+          console.log(`[${LOG_PREFIX}] Failed compaction`, error)
+        }
+      }
+    }
+  }, this._compactionInterval * 1000)
+}
+
 function prepareBulkWrite (realm, messages, topic, transformer, schemaName) {
   let payload = ''
 
@@ -232,7 +237,7 @@ function syncMessages (
       }
     }
   } catch (error) {
-    console.log('[MQEmitter-Realm] Sync messages failed', error)
+    console.log(`[${LOG_PREFIX}] Sync messages failed`, error)
   }
 }
 
