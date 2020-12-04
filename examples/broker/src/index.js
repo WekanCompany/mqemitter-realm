@@ -1,25 +1,20 @@
 'use strict';
 
-const realmEmitter = require('mqemitter-realm');
+const realmEmitter = require('../../../mqemitter-realm');
 const sensorSchema = require('./models/sensor');
 const utils = require('./utils');
 
 const main = async () => {
 
   try {
-    const user = await utils.realm.loginEmailPassword(
-      process.env.AEDES_REALM_EMAIL,
-      process.env.AEDES_REALM_PASSWORD
-    );
-
     const aedes = require('aedes')({
-
       mq: realmEmitter({
-        realmUser: user,
-        app: utils.realm.app,
+        appId: utils.realm.app,
+        email: process.env.AEDES_REALM_EMAIL,
+        password: process.env.AEDES_REALM_PASSWORD,
         schema: sensorSchema,
         // Size in mb
-        // compactionThreshold: 50,
+        compactionThreshold: 0.00050,
         topics: [
           {
             name: 'temp/sensor-1',
