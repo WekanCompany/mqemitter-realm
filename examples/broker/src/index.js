@@ -19,17 +19,17 @@ const main = async () => {
           {
             name: 'temp/sensor-1',
             transformer: utils.transformers.temperature,
-            partitionValue: 'temperature-1',
+            partitionValue: 'temperature',
           },
           {
             name: 'temp/sensor-2',
             transformer: utils.transformers.temperature,
-            partitionValue: 'temperature-2',
+            partitionValue: 'temperature',
           },
           {
             name: 'humid/sensor-1',
             transformer: utils.transformers.humidity,
-            partitionValue: 'humidity-1',
+            partitionValue: 'humidity',
           },
         ],
       }),
