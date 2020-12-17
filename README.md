@@ -22,7 +22,7 @@ const aedes = require('aedes')({
     compactionThreshold: 20,
     topics: [
       {
-        name: 'temp/sensor',
+        name: 'temp/sensor-1',
         transformer: utils.transformers.temperature,
         partitionValue: 'temperature',
       },
