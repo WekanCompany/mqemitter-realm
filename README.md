@@ -24,7 +24,7 @@ const aedes = require('aedes')({
       {
         name: 'temp/sensor',
         transformer: utils.transformers.temperature,
-        partitionValue: 'temperature-1',
+        partitionValue: 'temperature',
       },
       {
         name: 'humid/sensor-1',
