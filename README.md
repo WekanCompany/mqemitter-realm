@@ -1,4 +1,4 @@
-# mqemitter-realm 
+# mqemitter-realm
 
 MongoDB Realm powered [MQEmitter](https://github.com/WekanCompany/mqemitter-realm).
 
@@ -36,7 +36,7 @@ const aedes = require('aedes')({
 });
 ```
 
-The `examples/broker` folder provides a simple broker that uses `mqemitter-realm` to sync messages to a MongoDB server on the Atlas
+The `examples/broker` folder provides a simple broker that uses `mqemitter-realm` to sync messages to a MongoDB cluster on Atlas
 
 ## API
 
@@ -48,18 +48,18 @@ Create a new instance of mqemitter-mongodb.
 
 - `appId`: a realm app id
 
-- `email`: the realm app user's email 
+- `email`: the realm app user's email
 - `password`: the realm app user's password
 
-*We currently only support Email / Password authentication, but we will be adding the remaining authentication providers in the future.*
+_We currently only support Email / Password authentication, but we will be adding the remaining authentication providers in the future._
 
 - `schema`: an object schema defining the model to which the messages are saved
 
-*Take a look at [SensorSchema](examples/broker/src/models/sensor.js) to see an example of an object schema*
+_Take a look at [SensorSchema](examples/broker/src/models/sensor.js) to see an example of an object schema_
 
 - `compactionThreshold`: 50
 
-*The size is defined in MB. Defaults to 100 MB if not provided.*
+_The size is defined in MB. Defaults to 100 MB if not provided._
 
 - `topics`: An array of objects representing the data to save and where to save it.
   - `name`: a topic to listen to for incoming messages
